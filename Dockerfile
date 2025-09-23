@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
 # Install Composer
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
@@ -24,18 +24,16 @@ WORKDIR /var/www/html/LaravelWebsite
 # Copy project files
 COPY . .
 
+# Point Apache to the public directory
+RUN sed -i 's|/var/www/html|/var/www/html/LaravelWebsite/public|g' /etc/apache2/sites-available/000-default.conf
+
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Set Laravel permissions
-
-RUN mkdir -p /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache \
-    && chmod -R 775 /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache
-
-
-# Point Apache to the Laravel public directory
-RUN sed -i 's|/var/www/html|/var/www/html/LaravelWebsite/public|g' /etc/apache2/sites-available/000-default.conf
+RUN mkdir -p storage bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
 # Expose port 80
 EXPOSE 80
