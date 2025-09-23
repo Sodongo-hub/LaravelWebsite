@@ -28,8 +28,10 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 # Set Laravel permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+RUN mkdir -p /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache \
+    && chmod -R 775 /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache
 
 
 RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
