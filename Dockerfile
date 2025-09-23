@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 
 # Set working directory
-WORKDIR /var/www/html/
+WORKDIR /var/www/html/LaravelWebsite
 
 # Copy project files
 COPY . .
@@ -34,8 +34,8 @@ RUN mkdir -p /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/b
     && chmod -R 775 /var/www/html/LaravelWebsite/storage /var/www/html/LaravelWebsite/bootstrap/cache
 
 
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
-
+# Point Apache to the Laravel public directory
+RUN sed -i 's|/var/www/html|/var/www/html/LaravelWebsite/public|g' /etc/apache2/sites-available/000-default.conf
 
 # Expose port 80
 EXPOSE 80
