@@ -1,43 +1,37 @@
-# Use official PHP with Apache
-FROM php:8.2-apache
+# Stage 1: Build assets
+FROM node:20 AS node-builder
+WORKDIR /app
+COPY package*.json vite.config.js ./
+COPY resources ./resources
+RUN npm install && npm run build
 
-# Enable Apache mod_rewrite
-RUN a2enmod rewrite
+# Stage 2: PHP + Laravel
+FROM php:8.2-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git \
-    unzip \
-    zip \
-    libpng-dev \
-    libonig-dev \
-    libxml2-dev \
-    libzip-dev \
-    libpq-dev \
-    && docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
+    git curl libpng-dev libjpeg-dev libfreetype6-dev libonig-dev libxml2-dev zip unzip \
+    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd
 
 # Install Composer
-COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
-WORKDIR /var/www/html/LaravelWebsite
+WORKDIR /var/www
 
-# Copy project files
+# Copy app code
 COPY . .
 
-# Point Apache to the public directory
-RUN sed -i 's|/var/www/html|/var/www/html/LaravelWebsite/public|g' /etc/apache2/sites-available/000-default.conf
+# Copy built frontend assets from node-builder
+COPY --from=node-builder /app/public/build ./public/build
 
 # Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader \
+    && php artisan config:clear \
+    && php artisan route:clear \
+    && php artisan view:clear
 
-# Set Laravel permissions
-RUN mkdir -p storage bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
-    && chmod -R 775 storage bootstrap/cache
+# Expose Render port
+EXPOSE 10000
 
-# Expose port 80
-EXPOSE 80
-
-# Start Apache
-CMD ["apache2-foreground"]
+# Start Laravel server
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=10000"]
